@@ -60,8 +60,11 @@ class SchemaGenerator(object):
 
         if schema_type == ObjectType and len(base_object) > 0:
             schema_dict["properties"] = {}
+            schema_dict["required"] = []
+            schema_dict["additionalProperties"] = False
 
             for prop, value in base_object.items():
+                schema_dict["required"].append(prop)
                 schema_dict["properties"][prop] = self.to_dict(value, prop, False, required, nullable)
 
         elif schema_type == ArrayType and len(base_object) > 0:
@@ -76,7 +79,6 @@ class SchemaGenerator(object):
 
                 for idx, item in enumerate(base_object):
                     schema_dict['items'].append(self.to_dict(item, idx, False, required, nullable))
-
         return schema_dict
 
     @classmethod

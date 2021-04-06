@@ -36,10 +36,11 @@ class SchemaGenerator(object):
 
         return obj
 
-    def to_dict(self, base_object=None, object_id=None, first_level=True, required = True, nullable = False):
+    def to_dict(self, base_object=None, object_id=None, first_level=True, required = True, nullable = False, always_optional = None):
         """docstring for to_dict"""
 
         schema_dict = {}
+        always_optional = always_optional or []
 
         if first_level:
             base_object = self.base_object
@@ -52,7 +53,6 @@ class SchemaGenerator(object):
         base_object_type = type(base_object)
         schema_type = Type.get_schema_type_for(base_object_type)
 
-        schema_dict["required"] = required
         if nullable:
             schema_dict["type"] = [ schema_type.json_type, NullType.json_type ]
         else:
@@ -64,21 +64,22 @@ class SchemaGenerator(object):
             schema_dict["additionalProperties"] = False
 
             for prop, value in base_object.items():
-                schema_dict["required"].append(prop)
-                schema_dict["properties"][prop] = self.to_dict(value, prop, False, required, nullable)
+                if prop not in always_optional:
+                    schema_dict["required"].append(prop)
+                schema_dict["properties"][prop] = self.to_dict(value, prop, False, required, nullable, always_optional)
 
         elif schema_type == ArrayType and len(base_object) > 0:
             first_item_type = type(base_object[0])
             same_type = all((type(item) == first_item_type for item in base_object))
 
             if same_type:
-                schema_dict['items'] = self.to_dict(base_object[0], 0, False, required, nullable)
+                schema_dict['items'] = self.to_dict(base_object[0], 0, False, required, nullable, always_optional)
 
             else:
                 schema_dict['items'] = []
 
                 for idx, item in enumerate(base_object):
-                    schema_dict['items'].append(self.to_dict(item, idx, False, required, nullable))
+                    schema_dict['items'].append(self.to_dict(item, idx, False, required, nullable, always_optional))
         return schema_dict
 
     @classmethod
